@@ -2,6 +2,8 @@ package net.okyildiz.parametre.item;
 
 import net.okyildiz.parametre.utils.BaseService;
 import net.okyildiz.parametre.utils.GenericResultResponse;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,7 +18,7 @@ public class ParameterService extends BaseService {
         this.parameterRepository = parameterRepository;
     }
 
-
+    @CacheEvict(value = {"parametersByType", "parameterByUID", "allParameters"}, allEntries = true)
     public GenericResultResponse createParameter(ParameterDTO dto) {
         GenericResultResponse response = new GenericResultResponse();
 
@@ -33,6 +35,7 @@ public class ParameterService extends BaseService {
         return response;
     }
 
+    @CacheEvict(value = {"parametersByType", "parameterByUID", "allParameters"}, allEntries = true)
     public GenericResultResponse updateParameter(String UID, ParameterDTO dto) {
         GenericResultResponse response = new GenericResultResponse();
         try{
@@ -57,6 +60,7 @@ public class ParameterService extends BaseService {
         return response;
     }
 
+    @Cacheable(value = "parametersByType", key = "#type")
     public GenericResultResponse getParametersByType(String type) {
         GenericResultResponse response = new GenericResultResponse();
         try {
@@ -90,6 +94,7 @@ public class ParameterService extends BaseService {
         return response;
     }
 
+    @Cacheable(value = "parameterByUID", key = "#UID")
     public GenericResultResponse getParameterByUID(String UID) {
         GenericResultResponse response = new GenericResultResponse();
         try{
@@ -112,6 +117,7 @@ public class ParameterService extends BaseService {
         return response;
     }
 
+    @Cacheable(value = "allParameters")
     public GenericResultResponse getAllParameters() {
         GenericResultResponse response = new GenericResultResponse();
         try{
@@ -128,6 +134,7 @@ public class ParameterService extends BaseService {
         return response;
     }
 
+    @CacheEvict(value = {"parametersByType", "parameterByUID", "allParameters"}, allEntries = true)
     public GenericResultResponse deleteParameterByUID(String UID) {
         GenericResultResponse response = new GenericResultResponse();
         try{
