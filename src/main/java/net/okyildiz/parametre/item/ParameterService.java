@@ -1,11 +1,13 @@
 package net.okyildiz.parametre.item;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import net.okyildiz.parametre.utils.BaseService;
 import net.okyildiz.parametre.utils.GenericResultResponse;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -13,12 +15,16 @@ import java.util.stream.Collectors;
 public class ParameterService extends BaseService {
 
     private final ParameterRepository parameterRepository;
+    private final ObjectMapper objectMapper;
+    private final RedisTemplate<String, String> redisTemplate;
+    private static final String REDIS_KEY = "parameters";
 
-    public ParameterService(ParameterRepository parameterRepository) {
+    public ParameterService(ParameterRepository parameterRepository, ObjectMapper objectMapper, RedisTemplate<String, String> redisTemplate) {
         this.parameterRepository = parameterRepository;
+        this.objectMapper = objectMapper;
+        this.redisTemplate = redisTemplate;
     }
 
-    @CacheEvict(value = {"parametersByType", "parameterByUID", "allParameters"}, allEntries = true)
     public GenericResultResponse createParameter(ParameterDTO dto) {
         GenericResultResponse response = new GenericResultResponse();
 
@@ -35,7 +41,6 @@ public class ParameterService extends BaseService {
         return response;
     }
 
-    @CacheEvict(value = {"parametersByType", "parameterByUID", "allParameters"}, allEntries = true)
     public GenericResultResponse updateParameter(String UID, ParameterDTO dto) {
         GenericResultResponse response = new GenericResultResponse();
         try{
@@ -60,7 +65,6 @@ public class ParameterService extends BaseService {
         return response;
     }
 
-    @Cacheable(value = "parametersByType", key = "#type")
     public GenericResultResponse getParametersByType(String type) {
         GenericResultResponse response = new GenericResultResponse();
         try {
@@ -94,7 +98,6 @@ public class ParameterService extends BaseService {
         return response;
     }
 
-    @Cacheable(value = "parameterByUID", key = "#UID")
     public GenericResultResponse getParameterByUID(String UID) {
         GenericResultResponse response = new GenericResultResponse();
         try{
@@ -117,7 +120,6 @@ public class ParameterService extends BaseService {
         return response;
     }
 
-    @Cacheable(value = "allParameters")
     public GenericResultResponse getAllParameters() {
         GenericResultResponse response = new GenericResultResponse();
         try{
@@ -134,7 +136,36 @@ public class ParameterService extends BaseService {
         return response;
     }
 
-    @CacheEvict(value = {"parametersByType", "parameterByUID", "allParameters"}, allEntries = true)
+    public GenericResultResponse getAllParametersFromRedis() {
+        GenericResultResponse response = new GenericResultResponse();
+        try{
+
+            List<ParameterEntity> parameters = new ArrayList<>();
+            ObjectMapper objectMapper = new ObjectMapper();
+
+            for (String key : redisTemplate.keys(REDIS_KEY)) {
+                String jsonValue = redisTemplate.opsForValue().get(key);
+                if (jsonValue != null) {
+                    try {
+                        ParameterEntity parameter = objectMapper.readValue(jsonValue, ParameterEntity.class);
+                        parameters.add(parameter);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        // Hata yönetimi
+                    }
+                }
+            }
+
+            response.setData(parameters);
+
+        }catch (Exception e) {
+            response.setStatus(-200);
+            response.setMessage("Error creating parameter.");
+            response.setMessageDetail(e.getMessage());
+        }
+        return response;
+    }
+
     public GenericResultResponse deleteParameterByUID(String UID) {
         GenericResultResponse response = new GenericResultResponse();
         try{

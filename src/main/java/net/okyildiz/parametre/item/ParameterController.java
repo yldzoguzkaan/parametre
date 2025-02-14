@@ -39,6 +39,11 @@ public class ParameterController {
         return ResponseEntity.ok(parameterService.getAllParameters());
     }
 
+    @GetMapping("/redis/getAllParameters")
+    public ResponseEntity<GenericResultResponse> getAllParametersFromRedis() {
+        return ResponseEntity.ok(parameterService.getAllParametersFromRedis());
+    }
+
     @DeleteMapping("/deleteParameterByUID/{UID}")
     public ResponseEntity<GenericResultResponse> deleteParameterByUID(@PathVariable String UID) {
         return ResponseEntity.ok(parameterService.deleteParameterByUID(UID));

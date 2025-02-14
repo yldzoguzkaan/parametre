@@ -5,9 +5,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import net.okyildiz.parametre.utils.BaseEntity;
 
+import java.io.Serializable;
+
+
 @Entity
 @Table(name = "tbl_parametre")
-public class ParameterEntity extends BaseEntity {
+public class ParameterEntity extends BaseEntity implements Serializable {
 
     @Column(name = "name", nullable = false, length = 100)
     private String name;

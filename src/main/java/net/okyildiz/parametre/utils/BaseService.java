@@ -19,7 +19,7 @@ public abstract class BaseService {
     public static <T extends BaseEntity> void setBaseColumnsForCreate(T entity, String uid){
         Date now = new Date();
         entity.setCreated(now);
-        entity.setCreateUserId(uid);
+        entity.setCreateUserUID(uid);
         entity.setUpdated(now);
         entity.setUpdateUserUID(uid);
         if(entity.getStatus() == null){

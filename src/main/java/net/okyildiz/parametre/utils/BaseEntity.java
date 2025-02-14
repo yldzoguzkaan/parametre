@@ -1,12 +1,12 @@
 package net.okyildiz.parametre.utils;
 
-
 import jakarta.persistence.*;
 
+import java.io.Serializable;
 import java.util.Date;
 
 @MappedSuperclass
-public abstract class BaseEntity {
+public abstract class BaseEntity implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -20,7 +20,7 @@ public abstract class BaseEntity {
     private Date updated;
 
     @Column(name = "create_user_uid", nullable = false)
-    private String createUserId;
+    private String createUserUID;
 
     @Column(name = "update_user_uid")
     private String updateUserUID;
@@ -56,12 +56,12 @@ public abstract class BaseEntity {
         this.updated = updated;
     }
 
-    public String getCreateUserId() {
-        return createUserId;
+    public String getCreateUserUID() {
+        return createUserUID;
     }
 
-    public void setCreateUserId(String createUserId) {
-        this.createUserId = createUserId;
+    public void setCreateUserUID(String createUserUID) {
+        this.createUserUID = createUserUID;
     }
 
     public String getUpdateUserUID() {
