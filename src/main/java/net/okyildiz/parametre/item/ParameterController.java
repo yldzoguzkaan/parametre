@@ -29,9 +29,19 @@ public class ParameterController {
         return ResponseEntity.ok(parameterService.getParametersByType(type));
     }
 
+    @GetMapping("/redis/getParametersByType")
+    public ResponseEntity<GenericResultResponse> getParametersByTypeFromRedis(@RequestParam String type) {
+        return ResponseEntity.ok(parameterService.getParametersByTypeFromRedis(type));
+    }
+
     @GetMapping("/getParameterByUID/{UID}")
     public ResponseEntity<GenericResultResponse> getParameterByUID(@PathVariable String UID) {
         return ResponseEntity.ok(parameterService.getParameterByUID(UID));
+    }
+
+    @GetMapping("/redis/getParameterByUID/{UID}")
+    public ResponseEntity<GenericResultResponse> getParameterByUIDFromRedis(@PathVariable String UID) {
+        return ResponseEntity.ok(parameterService.getParameterByUIDFromRedis(UID));
     }
 
     @GetMapping("/getAllParameters")

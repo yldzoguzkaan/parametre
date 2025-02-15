@@ -3,26 +3,25 @@ package net.okyildiz.parametre.item;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.okyildiz.parametre.utils.BaseService;
 import net.okyildiz.parametre.utils.GenericResultResponse;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class ParameterService extends BaseService {
 
     private final ParameterRepository parameterRepository;
-    private final ObjectMapper objectMapper;
-    private final RedisTemplate<String, String> redisTemplate;
-    private static final String REDIS_KEY = "parameters";
+    private final RedisTemplate<String, ParameterEntity> redisTemplate;
+    private final HashOperations<String, String, ParameterEntity> hashOperations;
+    private static final String KEY_PREFIX = "MY_OBJECTS_BY_TYPE:";
 
-    public ParameterService(ParameterRepository parameterRepository, ObjectMapper objectMapper, RedisTemplate<String, String> redisTemplate) {
+    public ParameterService(ParameterRepository parameterRepository, RedisTemplate<String, ParameterEntity> redisTemplate) {
         this.parameterRepository = parameterRepository;
-        this.objectMapper = objectMapper;
         this.redisTemplate = redisTemplate;
+        hashOperations = redisTemplate.opsForHash();
     }
 
     public GenericResultResponse createParameter(ParameterDTO dto) {
@@ -77,16 +76,24 @@ public class ParameterService extends BaseService {
                 return response;
             }
 
-            /*
-            List<ParameterDTO> parametersDTO = new ArrayList<>();
-            for (ParameterEntity parameter : parameters) {
-                ParameterDTO dto = new ParameterDTO();
-                dto = (ParameterDTO) mergeObjects(dto,parameter);
-                parametersDTO.add(dto);
-            }
-            */
-
             response.setData(parameters.stream()
+                    .map(parameter -> (ParameterDTO) mergeObjects(new ParameterDTO(), parameter))
+                    .collect(Collectors.toList()));
+
+        }catch (Exception e) {
+            response.setStatus(-200);
+            response.setMessage("Error creating parameter.");
+            response.setMessageDetail(e.getMessage());
+        }
+        return response;
+    }
+
+    public GenericResultResponse getParametersByTypeFromRedis(String type) {
+        GenericResultResponse response = new GenericResultResponse();
+        try {
+            Map<String, ParameterEntity> objectsMap = hashOperations.entries(KEY_PREFIX + type);
+
+            response.setData(objectsMap.values().stream()
                     .map(parameter -> (ParameterDTO) mergeObjects(new ParameterDTO(), parameter))
                     .collect(Collectors.toList()));
 
@@ -120,6 +127,39 @@ public class ParameterService extends BaseService {
         return response;
     }
 
+    public GenericResultResponse getParameterByUIDFromRedis(String UID) {
+        GenericResultResponse response = new GenericResultResponse();
+        try{
+            Set<String> keys = redisTemplate.keys(KEY_PREFIX + "*");
+
+            ParameterEntity parameter = null;
+            if (keys != null) {
+                for (String key : keys) {
+                    // Her bir Hash'te uid'yi ara
+                    parameter = hashOperations.get(key, UID);
+                    if (parameter != null) {
+                        break;
+                    }
+                }
+            }
+
+            if(parameter == null) {
+                response.setStatus(-200);
+                response.setMessage("Parameter not found.");
+                response.setMessageDetail("Parameter not found.");
+                return response;
+            }
+
+            response.setData(mergeObjects(new ParameterDTO(),parameter));
+
+        }catch (Exception e) {
+            response.setStatus(-200);
+            response.setMessage("Error creating parameter.");
+            response.setMessageDetail(e.getMessage());
+        }
+        return response;
+    }
+
     public GenericResultResponse getAllParameters() {
         GenericResultResponse response = new GenericResultResponse();
         try{
@@ -128,6 +168,7 @@ public class ParameterService extends BaseService {
             response.setData(parameters.stream()
                     .map(parameter -> (ParameterDTO) mergeObjects(new ParameterDTO(), parameter))
                     .collect(Collectors.toList()));
+
         }catch (Exception e) {
             response.setStatus(-200);
             response.setMessage("Error creating parameter.");
@@ -140,23 +181,20 @@ public class ParameterService extends BaseService {
         GenericResultResponse response = new GenericResultResponse();
         try{
 
-            List<ParameterEntity> parameters = new ArrayList<>();
-            ObjectMapper objectMapper = new ObjectMapper();
+            Set<String> keys = redisTemplate.keys(KEY_PREFIX + "*");
+            List<ParameterEntity> allObjects = new ArrayList<>();
 
-            for (String key : redisTemplate.keys(REDIS_KEY)) {
-                String jsonValue = redisTemplate.opsForValue().get(key);
-                if (jsonValue != null) {
-                    try {
-                        ParameterEntity parameter = objectMapper.readValue(jsonValue, ParameterEntity.class);
-                        parameters.add(parameter);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        // Hata yönetimi
-                    }
+            if (keys != null) {
+                for (String key : keys) {
+                    Map<String, ParameterEntity> objectsMap = hashOperations.entries(key);
+                    allObjects.addAll(objectsMap.values()); // Her bir type'ın nesnelerini listeye ekle
                 }
             }
 
-            response.setData(parameters);
+
+            response.setData(allObjects.stream()
+                    .map(parameter -> (ParameterDTO) mergeObjects(new ParameterDTO(), parameter))
+                    .collect(Collectors.toList()));
 
         }catch (Exception e) {
             response.setStatus(-200);
